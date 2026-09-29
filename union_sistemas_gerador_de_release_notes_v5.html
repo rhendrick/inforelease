@@ -1,0 +1,1332 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title id="htmlPageTitle">Union_Sistemas_Release_Notes</title>
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- SheetJS (Leitura de Excel/CSV no cliente) -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <!-- html2pdf.js (Exportação PDF client-side) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  
+  <!-- Google Fonts: Inter & JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <style>
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+    .font-mono-code {
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    @page {
+      size: A4 portrait;
+      margin: 10mm;
+    }
+
+    @media print {
+      /* Garante que não haverá altura sobrando forçando páginas vazias no final */
+      html, body {
+        height: auto !important;
+        min-height: auto !important;
+        overflow: visible !important;
+      }
+
+      body {
+        background: #ffffff !important;
+        color: #0f172a !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+
+      .no-print {
+        display: none !important;
+      }
+
+      #previewContainer {
+        box-shadow: none !important;
+        border: none !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        width: 100% !important;
+        max-width: 100% !important;
+      }
+
+      .page-break-avoid {
+        break-inside: avoid !important;
+        page-break-inside: avoid !important;
+      }
+    }
+
+    .fade-in {
+      animation: fadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+<body class="bg-slate-100 text-slate-800 min-h-screen py-6 px-3 sm:px-6 lg:px-8">
+
+  <!-- Toast de Notificação -->
+  <div id="toast" class="fixed top-5 right-5 z-50 transform transition-all duration-300 translate-y-[-140%] opacity-0 pointer-events-none">
+    <div id="toastBody" class="px-5 py-3 rounded-xl shadow-xl border text-sm font-semibold flex items-center gap-3 bg-white border-slate-200 text-slate-800">
+      <span id="toastIcon">ℹ️</span>
+      <span id="toastMsg">Mensagem</span>
+    </div>
+  </div>
+
+  <div class="max-w-6xl mx-auto space-y-6">
+
+    <!-- ÁREA DE OPERAÇÃO E CONTROLES (Ocultada na impressão) -->
+    <header class="no-print bg-white p-6 sm:p-7 rounded-2xl shadow-sm border border-slate-200/80 space-y-6">
+      
+      <!-- Topo do Painel de Controle -->
+      <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-5 pb-5 border-b border-slate-100">
+        <div class="flex items-center gap-4">
+          <div class="w-14 h-14 rounded-2xl bg-slate-900 flex items-center justify-center p-2.5 shadow-md shadow-cyan-900/10 border border-slate-800">
+            <!-- Render da Logo da Union sem distorção -->
+            <img class="logo-union-img w-full h-full object-contain" alt="Union Sistemas Logo" />
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <h1 class="text-xl tracking-tight leading-none text-slate-900 flex items-center gap-1.5">
+                <span class="font-extrabold text-slate-900 tracking-tight uppercase">UNION</span>
+                <span class="font-bold text-[#0066CC] tracking-tight uppercase">SISTEMAS</span>
+              </h1>
+              <span class="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-blue-50 text-[#009BFF] border border-blue-200">
+                Release Generator
+              </span>
+            </div>
+            <p class="text-xs text-slate-500 font-medium mt-1">Gere relatórios consolidados da Sprint ou comunicados individuais por cliente</p>
+          </div>
+        </div>
+
+        <!-- Ações de Exportação -->
+        <div class="flex flex-wrap items-center gap-2.5">
+          <button 
+            type="button" 
+            id="btnPdfDownload" 
+            onclick="executarDownloadPdf()" 
+            class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#0066CC] hover:bg-[#0052a3] active:bg-[#003d7a] text-white text-sm font-bold shadow-sm transition-colors cursor-pointer"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+            </svg>
+            <span id="btnPdfTxt">Baixar PDF Oficial</span>
+          </button>
+
+          <button 
+            type="button" 
+            id="btnImprimirNativo" 
+            onclick="executarImpressaoNativa()" 
+            class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-semibold border border-slate-200/80 transition-colors cursor-pointer"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+            </svg>
+            Imprimir / Salvar PDF
+          </button>
+        </div>
+      </div>
+
+      <!-- ZONA DE UPLOAD DRAG & DROP -->
+      <div class="space-y-2.5">
+        <div 
+          id="dropZone"
+          class="border-2 border-dashed border-blue-200 bg-blue-50/40 hover:bg-blue-50 hover:border-[#0066CC] rounded-2xl p-5 sm:p-6 transition-all text-center cursor-pointer group"
+        >
+          <div class="w-11 h-11 rounded-xl bg-blue-100 text-[#0066CC] group-hover:scale-105 transition-transform flex items-center justify-center mx-auto mb-2">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+            </svg>
+          </div>
+          <p class="text-sm font-bold text-slate-800">
+            Arraste e solte o arquivo da Sprint aqui ou clique para selecionar
+          </p>
+          <p class="text-xs text-slate-500 mt-1">
+            Suporta <span class="font-semibold text-slate-700">.xlsx, .xls e .csv</span>. Captura automaticamente as colunas: <span class="font-mono text-[#0066CC]">RazaoSocial, CodigoTicket, Titulo, DescricaoSituacao</span>.
+          </p>
+          <input type="file" id="fileInput" accept=".xlsx, .xls, .csv" class="hidden">
+        </div>
+
+        <div class="flex flex-col sm:flex-row items-center justify-between gap-3 text-xs px-1">
+          <div id="statusArquivo" class="font-semibold text-slate-600 flex items-center gap-1.5">
+            <span class="w-2 h-2 rounded-full bg-slate-400"></span>
+            Nenhuma planilha importada no momento.
+          </div>
+          <button 
+            type="button" 
+            onclick="carregarDadosDemonstracao()" 
+            class="text-[#0066CC] hover:text-[#0052a3] font-bold underline cursor-pointer"
+          >
+            Carregar Dados de Demonstração / Teste
+          </button>
+        </div>
+      </div>
+
+      <!-- Mapeador Manual de Colunas (Contingência) - MOVIDO PARA CÁ -->
+      <div id="secaoMapeamento" class="hidden p-4 rounded-xl border border-amber-200 bg-amber-50/70 space-y-3 fade-in">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2 text-amber-900 font-bold text-xs uppercase tracking-wider">
+            <svg class="w-4 h-4 text-amber-600" fill="currentColor" viewBox="0 0 20 20">
+              <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+            </svg>
+            Mapeador de Colunas (Ajuste Manual)
+          </div>
+          <span class="text-[11px] text-amber-700">Confirme as colunas encontradas na sua planilha:</span>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Razão Social (Cliente)</label>
+            <select id="mapRazao" onchange="aplicarMapeamentoManual()" class="w-full p-2 border border-slate-300 rounded-lg bg-white font-medium"></select>
+          </div>
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Código do Ticket</label>
+            <select id="mapTicket" onchange="aplicarMapeamentoManual()" class="w-full p-2 border border-slate-300 rounded-lg bg-white font-medium"></select>
+          </div>
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Título / Assunto</label>
+            <select id="mapTitulo" onchange="aplicarMapeamentoManual()" class="w-full p-2 border border-slate-300 rounded-lg bg-white font-medium"></select>
+          </div>
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Descrição / Situação</label>
+            <select id="mapSituacao" onchange="aplicarMapeamentoManual()" class="w-full p-2 border border-slate-300 rounded-lg bg-white font-medium"></select>
+          </div>
+        </div>
+      </div>
+
+      <!-- SELEÇÃO DE ESCOPO: GERAL vs CLIENTE ESPECÍFICO vs CHANGELOG ANÔNIMO -->
+      <div class="p-4 rounded-xl bg-gradient-to-r from-blue-50/70 via-indigo-50/40 to-slate-50 border border-blue-200/80 space-y-3">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-3">
+          <div>
+            <label class="block text-xs font-bold uppercase tracking-wider text-[#0066CC]">
+              🎯 Modo de Visualização &amp; Exportação
+            </label>
+            <p class="text-xs text-slate-600 font-medium mt-0.5">
+              Escolha entre relatório agrupado por cliente, comunicado individual exclusivo ou changelog geral anônimo sem identificação de empresas.
+            </p>
+          </div>
+
+          <!-- Radio Switcher com 3 opções -->
+          <div class="inline-flex p-1 bg-white border border-slate-200 rounded-xl shadow-xs self-start md:self-auto flex-wrap gap-1">
+            <button 
+              type="button" 
+              id="btnModoGeral" 
+              onclick="definirModoExportacao('geral')"
+              class="px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all bg-[#0066CC] text-white shadow-xs"
+            >
+              Todos os Clientes (Agrupado)
+            </button>
+            <button 
+              type="button" 
+              id="btnModoIndividual" 
+              onclick="definirModoExportacao('individual')"
+              class="px-3.5 py-1.5 rounded-lg text-xs font-bold text-slate-600 hover:text-slate-900 transition-all"
+            >
+              Cliente Específico (Individual)
+            </button>
+            <button 
+              type="button" 
+              id="btnModoAnonimo" 
+              onclick="definirModoExportacao('anonimo')"
+              class="px-3.5 py-1.5 rounded-lg text-xs font-bold text-slate-600 hover:text-slate-900 transition-all"
+            >
+              Lista Geral Sem Nomes (Changelog Público)
+            </button>
+          </div>
+        </div>
+
+        <!-- Seletor de Cliente Dinâmico (Aparece quando no modo individual) -->
+        <div id="seletorClienteBox" class="hidden pt-2 border-t border-blue-100 flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+          <div class="flex items-center gap-2 text-xs font-bold text-slate-700 whitespace-nowrap">
+            <svg class="w-4 h-4 text-[#0066CC]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+            </svg>
+            Selecionar Razão Social:
+          </div>
+          <select 
+            id="selectClienteAtivo" 
+            onchange="aoMudarClienteAtivo(this.value)"
+            class="flex-1 px-3 py-2 text-sm font-semibold rounded-xl border border-blue-300 bg-white text-slate-900 focus:outline-[#0066CC] shadow-2xs"
+          >
+            <option value="">-- Nenhuma empresa carregada --</option>
+          </select>
+          <span id="badgeQtdChamadosCliente" class="px-3 py-1.5 rounded-xl bg-blue-100 text-[#0066CC] text-xs font-bold whitespace-nowrap self-start sm:self-auto">
+            0 chamados
+          </span>
+        </div>
+      </div>
+
+      <!-- Configurações de Emissão, Versão e Máscara de Nome -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">
+            Máscara de Nome do Arquivo (.pdf)
+          </label>
+          <div class="relative">
+            <input 
+              type="text" 
+              id="inputMascara" 
+              value="Relatorio_Sprint_Union_Geral" 
+              oninput="sanitizarMascara(this)" 
+              class="w-full pl-3 pr-12 py-2 text-sm font-mono-code bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-[#0066CC]"
+            >
+            <span class="absolute right-3 top-2.5 text-xs font-mono text-slate-400">.pdf</span>
+          </div>
+          <span class="text-[11px] text-slate-400">Nome sugerido ao salvar ou baixar o arquivo PDF.</span>
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">Versão da Sprint / Pacote</label>
+          <input 
+            type="text" 
+            id="inputVersao" 
+            value="Sprint 24 - v2026.09" 
+            oninput="aoAlterarVersaoOuData()" 
+            class="w-full px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-[#0066CC]"
+          >
+          <span class="text-[11px] text-slate-400">Identificação no topo do relatório.</span>
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">Data de Liberação</label>
+          <input 
+            type="text" 
+            id="inputData" 
+            value="29 de Setembro de 2026" 
+            oninput="aoAlterarVersaoOuData()" 
+            class="w-full px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-[#0066CC]"
+          >
+          <span class="text-[11px] text-slate-400">Data oficial expressa no documento.</span>
+        </div>
+      </div>
+
+      <!-- Depurador Visual Transparente -->
+      <details class="text-xs text-slate-500 bg-slate-50 rounded-xl border border-slate-200 p-3">
+        <summary class="font-bold cursor-pointer text-slate-700 hover:text-slate-900 select-none flex items-center justify-between">
+          <span>🔍 Painel Depurador de Planilha (Ver cabeçalhos lidos e status interno)</span>
+          <span id="badgeDepurador" class="text-[11px] font-mono bg-slate-200 text-slate-700 px-2 py-0.5 rounded">0 linhas</span>
+        </summary>
+        <div class="mt-3 pt-3 border-t border-slate-200 space-y-2 font-mono text-[11px]">
+          <div><strong class="text-slate-800">Linha de Cabeçalho Detectada:</strong> <span id="debugLinhaCabecalho">-</span></div>
+          <div><strong class="text-slate-800">Colunas Encontradas no Arquivo:</strong> <span id="debugColunas">-</span></div>
+          <div><strong class="text-slate-800">Colunas Mapeadas:</strong> <span id="debugMapeamento">-</span></div>
+        </div>
+      </details>
+
+      <!-- Barra de Pesquisa Rápida na Tela (Ativa principalmente no modo Geral) -->
+      <div id="barraBuscaWrapper" class="relative">
+        <input 
+          type="text" 
+          id="inputFiltro" 
+          oninput="filtrarCards()" 
+          placeholder="Buscar por cliente, código do chamado ou palavras da resolução..." 
+          class="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 text-sm bg-slate-50 focus:bg-white focus:outline-[#0066CC]"
+        >
+        <svg class="w-4 h-4 text-slate-400 absolute left-3.5 top-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+        </svg>
+      </div>
+
+    </header>
+
+    <!-- DOCUMENTO OFICIAL A4: RELATÓRIO DA UNION SISTEMAS -->
+    <main id="previewContainer" class="bg-white p-8 sm:p-12 rounded-2xl shadow-sm border border-slate-200/90 text-slate-900">
+      
+      <!-- Cabeçalho Corporativo Union Sistemas -->
+      <header class="border-b-2 border-slate-900 pb-6 mb-7 flex flex-col sm:flex-row justify-between items-start sm:items-end gap-5">
+        <div>
+          <div class="flex items-center gap-3.5 mb-2.5">
+            <div class="w-12 h-12 rounded-xl bg-slate-900 flex items-center justify-center p-2 shadow-sm border border-slate-800">
+              <!-- Logotipo nítido e rasterizado para o html2canvas ler com perfeição -->
+              <img class="logo-union-img w-full h-full object-contain" alt="Union Logo" />
+            </div>
+            <div>
+              <span class="text-2xl tracking-tight leading-none uppercase flex items-center gap-1.5">
+                <span class="font-extrabold text-slate-900 tracking-tight">UNION</span>
+                <span class="font-bold text-[#0066CC] tracking-tight">SISTEMAS</span>
+              </span>
+            </div>
+          </div>
+          
+          <!-- Título Dinâmico (Geral vs Cliente Individual) -->
+          <h2 id="docTituloRelatorio" class="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight leading-tight">
+            Relatório Geral de Atualização e Release Notes
+          </h2>
+          
+          <!-- Subtítulo e Cliente em Destaque -->
+          <p class="text-xs sm:text-sm text-slate-600 font-semibold mt-1">
+            <span id="docClienteDestaqueTag" class="hidden inline-block mr-2 px-2.5 py-0.5 rounded-md bg-blue-50 text-[#0066CC] border border-blue-200 font-bold">
+              Cliente: <span id="docClienteDestaqueNome">Empresa X</span>
+            </span>
+            Versão: <span id="docVersaoTxt" class="text-[#009BFF] font-bold">Sprint 24 - v2026.09</span> 
+            • Data de Liberação: <span id="docDataTxt" class="text-slate-800">29 de Setembro de 2026</span>
+          </p>
+        </div>
+
+        <div class="text-left sm:text-right border-l-2 sm:border-l-0 pl-3 sm:pl-0 border-[#009BFF]">
+          <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">Emissão</span>
+          <span class="text-sm font-extrabold text-slate-900 block">Time de suporte</span>
+          <span class="inline-block mt-1 px-2.5 py-0.5 rounded text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+            Ambiente: Estável e Seguro
+          </span>
+        </div>
+      </header>
+
+      <!-- Resumo Executivo / Métricas Rápidas Dinâmicas -->
+      <section class="mb-8 page-break-avoid">
+        <div class="flex items-center justify-between mb-3">
+          <h3 class="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+            <span>01.</span> Indicadores de Qualidade &amp; Entrega
+          </h3>
+          <span id="tagSubMetricas" class="text-[11px] font-medium text-slate-400">Validados e disponíveis para uso contínuo</span>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <!-- Card 1 -->
+          <div class="p-4 rounded-xl border border-slate-200 bg-slate-50/70">
+            <span id="lblMetrica1" class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Demandas Concluídas</span>
+            <div id="statTotalTickets" class="text-3xl font-black text-slate-900 mt-1">0</div>
+            <p id="subMetrica1" class="text-[11px] text-slate-400 font-medium mt-1">Chamados entregues nesta versão</p>
+          </div>
+
+          <!-- Card 2 -->
+          <div class="p-4 rounded-xl border border-slate-200 bg-slate-50/70">
+            <span id="lblMetrica2" class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Clientes Beneficiados</span>
+            <div id="statTotalClientes" class="text-3xl font-black text-[#0066CC] mt-1">0</div>
+            <p id="subMetrica2" class="text-[11px] text-slate-400 font-medium mt-1">Empresas com soluções aplicadas</p>
+          </div>
+
+          <!-- Card 3 -->
+          <div class="p-4 rounded-xl border border-emerald-200/80 bg-emerald-50/40">
+            <span class="text-[11px] font-bold text-emerald-700 uppercase tracking-wider flex items-center gap-1.5">
+              <svg class="w-3.5 h-3.5 text-emerald-600" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+              </svg>
+              Conformidade da Entrega
+            </span>
+            <div id="statConformidade" class="text-3xl font-black text-emerald-700 mt-1">100%</div>
+            <p id="subConformidade" class="text-[11px] text-emerald-600 font-semibold mt-1">Testado &amp; Estável em Produção</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Lista Detalhada Agrupada por Razão Social -->
+      <section class="space-y-6">
+        <div class="flex items-center justify-between border-b border-slate-200 pb-2">
+          <h3 id="txtTituloSecaoLista" class="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+            <span>02.</span> Chamados Agrupados por Razão Social
+          </h3>
+          <span id="txtTotalExibido" class="text-xs font-semibold text-slate-500">0 clientes listados</span>
+        </div>
+
+        <!-- Onde os cards dos clientes são injetados -->
+        <div id="containerClientes" class="space-y-6">
+          <div class="text-center py-14 border-2 border-dashed border-slate-200 rounded-2xl bg-slate-50/60">
+            <div class="w-12 h-12 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center mx-auto mb-3">
+              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+            </div>
+            <p class="text-sm font-bold text-slate-700">Nenhum chamado disponível para exibição.</p>
+            <p class="text-xs text-slate-400 mt-1 max-w-md mx-auto">
+              Importe a planilha Excel acima ou clique em <em>"Carregar Dados de Demonstração / Teste"</em> para testar a pré-visualização instantaneamente.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Rodapé Oficial do Documento -->
+      <footer class="mt-12 pt-6 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-400 page-break-avoid">
+        <div class="flex items-center gap-2">
+          <div class="w-4 h-4 inline-flex items-center justify-center">
+            <img class="logo-union-img w-full h-full object-contain" alt="Union Logo Footer" />
+          </div>
+          <span class="leading-none flex items-center gap-1 text-slate-900 uppercase">
+            <span class="font-extrabold text-slate-900 tracking-tight">UNION</span>
+            <span class="font-bold text-[#0066CC] tracking-tight">SISTEMAS</span>
+          </span>
+          <span>•</span>
+          <span id="footerTextoTipo">Relatório de Atualizações e Melhorias Contínuas</span>
+        </div>
+        <div class="font-semibold text-slate-700">
+          Emissão: Time de suporte
+        </div>
+      </footer>
+
+    </main>
+
+  </div>
+
+  <script>
+    // ==========================================
+    // ESTADO GLOBAL DA APLICAÇÃO
+    // ==========================================
+    let modoAtual = 'geral'; // 'geral', 'individual' ou 'anonimo'
+    let clienteAtivo = '';   // RazaoSocial selecionada no modo individual
+
+    let rawSheetRows = [];         
+    let colunasDisponiveis = [];    
+    let mapaColunas = {
+      razaoSocial: null,
+      codigoTicket: null,
+      titulo: null,
+      descricaoSituacao: null
+    };
+    let ticketsProcessados = [];    
+    let ticketsAgrupados = {};      
+
+    // ==========================================
+    // CONTROLE DE MODOS (GERAL vs INDIVIDUAL vs ANÔNIMO)
+    // ==========================================
+    function definirModoExportacao(novoModo) {
+      modoAtual = novoModo;
+      const btnGeral = document.getElementById('btnModoGeral');
+      const btnIndiv = document.getElementById('btnModoIndividual');
+      const btnAnon = document.getElementById('btnModoAnonimo');
+      const seletorBox = document.getElementById('seletorClienteBox');
+      const barraBusca = document.getElementById('barraBuscaWrapper');
+
+      // Reseta classes dos três botões
+      [btnGeral, btnIndiv, btnAnon].forEach(b => {
+        b.className = "px-3.5 py-1.5 rounded-lg text-xs font-bold text-slate-600 hover:text-slate-900 transition-all";
+      });
+
+      if (novoModo === 'geral') {
+        btnGeral.className = "px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all bg-[#0066CC] text-white shadow-xs";
+        seletorBox.classList.add('hidden');
+        barraBusca.classList.remove('hidden');
+      } else if (novoModo === 'individual') {
+        btnIndiv.className = "px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all bg-[#0066CC] text-white shadow-xs";
+        seletorBox.classList.remove('hidden');
+        barraBusca.classList.add('hidden');
+
+        const listaClientes = Object.keys(ticketsAgrupados).sort();
+        if ((!clienteAtivo || !ticketsAgrupados[clienteAtivo]) && listaClientes.length > 0) {
+          clienteAtivo = listaClientes[0];
+          document.getElementById('selectClienteAtivo').value = clienteAtivo;
+        }
+      } else if (novoModo === 'anonimo') {
+        btnAnon.className = "px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all bg-[#0066CC] text-white shadow-xs";
+        seletorBox.classList.add('hidden');
+        barraBusca.classList.remove('hidden');
+      }
+
+      atualizarMascaraArquivo();
+      aplicarVisualizacaoPorModo();
+    }
+
+    function aoMudarClienteAtivo(clienteEscolhido) {
+      clienteAtivo = clienteEscolhido;
+      atualizarMascaraArquivo();
+      aplicarVisualizacaoPorModo();
+    }
+
+    function selecionarClienteDireto(clienteNome) {
+      clienteAtivo = clienteNome;
+      definirModoExportacao('individual');
+      document.getElementById('selectClienteAtivo').value = clienteNome;
+      notify(`Modo individual ativado para: ${clienteNome}`, 'success');
+      
+      // Scroll suave até o relatório
+      document.getElementById('previewContainer').scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function atualizarSelectClientes() {
+      const select = document.getElementById('selectClienteAtivo');
+      select.innerHTML = '';
+
+      const listaClientes = Object.keys(ticketsAgrupados).sort();
+      if (listaClientes.length === 0) {
+        select.innerHTML = '<option value="">-- Nenhuma empresa carregada --</option>';
+        document.getElementById('badgeQtdChamadosCliente').textContent = '0 chamados';
+        return;
+      }
+
+      listaClientes.forEach(cli => {
+        const opt = document.createElement('option');
+        opt.value = cli;
+        const totalCli = ticketsAgrupados[cli].length;
+        opt.textContent = `${cli} (${totalCli} chamado${totalCli > 1 ? 's' : ''})`;
+        if (cli === clienteAtivo) opt.selected = true;
+        select.appendChild(opt);
+      });
+
+      if (!clienteAtivo || !ticketsAgrupados[clienteAtivo]) {
+        clienteAtivo = listaClientes[0];
+        select.value = clienteAtivo;
+      }
+
+      const qtdAtual = ticketsAgrupados[clienteAtivo] ? ticketsAgrupados[clienteAtivo].length : 0;
+      document.getElementById('badgeQtdChamadosCliente').textContent = `${qtdAtual} chamado${qtdAtual > 1 ? 's' : ''}`;
+    }
+
+    function atualizarMascaraArquivo() {
+      const inputMascara = document.getElementById('inputMascara');
+      const versaoTexto = sanitizarParaNomeArquivo(document.getElementById('inputVersao').value) || 'Sprint';
+
+      if (modoAtual === 'geral') {
+        inputMascara.value = `Relatorio_Sprint_Union_${versaoTexto}_Geral`;
+      } else if (modoAtual === 'individual') {
+        const clienteLimpo = sanitizarParaNomeArquivo(clienteAtivo) || 'Cliente';
+        inputMascara.value = `Comunicado_Union_${clienteLimpo}_${versaoTexto}`;
+      } else if (modoAtual === 'anonimo') {
+        inputMascara.value = `Changelog_Geral_Versao_${versaoTexto}_Union_Sistemas`;
+      }
+      sanitizarMascara(inputMascara);
+    }
+
+    // ==========================================
+    // RENDERIZAÇÃO DO RELATÓRIO CONFORME O MODO
+    // ==========================================
+    function aplicarVisualizacaoPorModo() {
+      const docTitulo = document.getElementById('docTituloRelatorio');
+      const docTagCliente = document.getElementById('docClienteDestaqueTag');
+      const docNomeCliente = document.getElementById('docClienteDestaqueNome');
+      
+      const lblMetrica1 = document.getElementById('lblMetrica1');
+      const subMetrica1 = document.getElementById('subMetrica1');
+      const lblMetrica2 = document.getElementById('lblMetrica2');
+      const subMetrica2 = document.getElementById('subMetrica2');
+      const statTotalTickets = document.getElementById('statTotalTickets');
+      const statTotalClientes = document.getElementById('statTotalClientes');
+
+      const txtSecaoLista = document.getElementById('txtTituloSecaoLista');
+      const footerTipo = document.getElementById('footerTextoTipo');
+
+      if (modoAtual === 'geral') {
+        // --- 1. MODO GERAL CONSOLIDADO ---
+        docTitulo.textContent = "Relatório Geral de Atualização e Release Notes";
+        docTagCliente.classList.add('hidden');
+
+        lblMetrica1.textContent = "Demandas Concluídas";
+        subMetrica1.textContent = "Chamados entregues nesta versão";
+        statTotalTickets.textContent = ticketsProcessados.length;
+
+        lblMetrica2.textContent = "Clientes Beneficiados";
+        subMetrica2.textContent = "Empresas com soluções aplicadas";
+        statTotalClientes.textContent = Object.keys(ticketsAgrupados).length;
+
+        txtSecaoLista.innerHTML = "<span>02.</span> Chamados Agrupados por Razão Social";
+        footerTipo.textContent = "Relatório Consolidado de Atualizações e Melhorias";
+
+        renderizarCards(ticketsAgrupados);
+
+      } else if (modoAtual === 'individual') {
+        // --- 2. MODO CLIENTE ESPECÍFICO ---
+        const totalCli = (ticketsAgrupados[clienteAtivo] || []).length;
+        document.getElementById('badgeQtdChamadosCliente').textContent = `${totalCli} chamado${totalCli > 1 ? 's' : ''}`;
+
+        docTitulo.textContent = "Comunicado Oficial de Atualização & Entrega de Versão";
+        docTagCliente.classList.remove('hidden');
+        docNomeCliente.textContent = clienteAtivo || 'Cliente';
+
+        lblMetrica1.textContent = "Demandas da sua Empresa";
+        subMetrica1.textContent = "Total de itens aplicados para sua conta";
+        statTotalTickets.textContent = totalCli;
+
+        lblMetrica2.textContent = "Status do Ambiente";
+        subMetrica2.textContent = "Atualização aplicada e disponível para uso";
+        statTotalClientes.textContent = "Atualizado";
+
+        txtSecaoLista.innerHTML = `<span>02.</span> Detalhamento dos Itens Entregues para ${clienteAtivo || 'sua Empresa'}`;
+        footerTipo.textContent = `Comunicado de Entrega Exclusivo • ${clienteAtivo || 'Cliente'}`;
+
+        const mapaUnico = {};
+        if (clienteAtivo && ticketsAgrupados[clienteAtivo]) {
+          mapaUnico[clienteAtivo] = ticketsAgrupados[clienteAtivo];
+        }
+        renderizarCards(mapaUnico);
+
+      } else if (modoAtual === 'anonimo') {
+        // --- 3. MODO CHANGELOG PÚBLICO / ANÔNIMO ---
+        docTitulo.textContent = "Changelog Geral de Atualizações da Versão";
+        docTagCliente.classList.add('hidden');
+
+        lblMetrica1.textContent = "Total de Entregas da Versão";
+        subMetrica1.textContent = "Itens e correções disponibilizados";
+        statTotalTickets.textContent = ticketsProcessados.length;
+
+        lblMetrica2.textContent = "Status da Versão";
+        subMetrica2.textContent = "Ambiente estável e disponível para uso";
+        statTotalClientes.textContent = "Em Produção";
+
+        txtSecaoLista.innerHTML = "<span>02.</span> Registro Consolidado de Chamados e Atualizações";
+        footerTipo.textContent = "Changelog Geral de Release • Registro Público de Atualizações";
+
+        renderizarTabelaAnonima(ticketsProcessados);
+      }
+    }
+
+    // ==========================================
+    // RENDER DA TABELA CONTÍNUA SEM NOMES DE CLIENTES
+    // ==========================================
+    function renderizarTabelaAnonima(tickets) {
+      const container = document.getElementById('containerClientes');
+      document.getElementById('txtTotalExibido').textContent = `${tickets.length} chamado(s) consolidado(s)`;
+
+      if (tickets.length === 0) {
+        container.innerHTML = `
+          <div class="text-center py-12 border border-slate-200 rounded-2xl bg-slate-50/60">
+            <p class="text-sm font-bold text-slate-700">Nenhum chamado disponível para exibição.</p>
+            <p class="text-xs text-slate-400 mt-1">Importe uma planilha ou utilize a demonstração.</p>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = '';
+
+      const card = document.createElement('div');
+      card.className = "border border-slate-200 rounded-2xl overflow-hidden bg-white shadow-xs fade-in";
+
+      const linhasHtml = tickets.map(t => `
+        <tr class="border-b border-slate-100 hover:bg-slate-50/60 transition-colors">
+          <td class="py-3 px-4 text-xs font-mono-code font-bold align-top whitespace-nowrap">
+            <span class="inline-flex items-center px-2.5 py-1 rounded-md bg-blue-50 text-[#0066CC] border border-blue-200/80 font-bold">
+              #${t.codigoTicket}
+            </span>
+          </td>
+          <td class="py-3 px-4 text-xs font-bold text-slate-900 align-top max-w-[260px] leading-snug">
+            ${t.titulo}
+          </td>
+          <td class="py-3 px-4 text-xs text-slate-600 leading-relaxed align-top">
+            ${t.descricaoSituacao}
+          </td>
+        </tr>
+      `).join('');
+
+      card.innerHTML = `
+        <div class="bg-gradient-to-r from-slate-50 to-blue-50/30 px-5 py-3.5 border-b border-slate-200 flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-[#009BFF]"></span>
+            <span class="font-extrabold text-sm text-[#0A2540] tracking-tight">Lista Consolidada de Atualizações</span>
+          </div>
+          <span class="text-xs font-bold text-slate-600 bg-white px-2.5 py-1 rounded-lg border border-slate-200 shadow-2xs">
+            ${tickets.length} itens entregues
+          </span>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-left border-collapse">
+            <thead>
+              <tr class="bg-white border-b border-slate-100 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                <th class="py-2.5 px-4 w-32">Ticket</th>
+                <th class="py-2.5 px-4 w-64">Título / Assunto</th>
+                <th class="py-2.5 px-4">Descrição da Situação / Resolução</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100">
+              ${linhasHtml}
+            </tbody>
+          </table>
+        </div>
+      `;
+
+      container.appendChild(card);
+    }
+
+    // ==========================================
+    // DRAG AND DROP & INPUT DE ARQUIVO
+    // ==========================================
+    const dropZone = document.getElementById('dropZone');
+    const fileInput = document.getElementById('fileInput');
+
+    dropZone.addEventListener('click', () => fileInput.click());
+
+    ['dragenter', 'dragover'].forEach(name => {
+      dropZone.addEventListener(name, (e) => {
+        e.preventDefault();
+        dropZone.classList.add('border-[#0066CC]', 'bg-blue-100/60');
+      });
+    });
+
+    ['dragleave', 'drop'].forEach(name => {
+      dropZone.addEventListener(name, (e) => {
+        e.preventDefault();
+        dropZone.classList.remove('border-[#0066CC]', 'bg-blue-100/60');
+      });
+    });
+
+    dropZone.addEventListener('drop', (e) => {
+      const files = e.dataTransfer.files;
+      if (files && files.length > 0) {
+        lerArquivoExcel(files[0]);
+      }
+    });
+
+    fileInput.addEventListener('change', (e) => {
+      if (e.target.files && e.target.files.length > 0) {
+        lerArquivoExcel(e.target.files[0]);
+      }
+    });
+
+    // ==========================================
+    // LEITURA DA PLANILHA (SHEETJS)
+    // ==========================================
+    function lerArquivoExcel(file) {
+      document.getElementById('statusArquivo').innerHTML = `
+        <span class="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></span>
+        Processando ${file.name}...
+      `;
+
+      const reader = new FileReader();
+      reader.onload = function(evt) {
+        try {
+          const data = new Uint8Array(evt.target.result);
+          const workbook = XLSX.read(data, { type: 'array' });
+          const sheetName = workbook.SheetNames[0];
+          const sheet = workbook.Sheets[sheetName];
+
+          const rowsMatrix = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
+
+          if (!rowsMatrix || rowsMatrix.length === 0) {
+            throw new Error("A planilha selecionada está totalmente em branco.");
+          }
+
+          analisarMatrizPlanilha(rowsMatrix, file.name);
+        } catch (err) {
+          console.error("Erro na leitura:", err);
+          notify("Erro ao ler planilha: " + err.message, "error");
+          document.getElementById('statusArquivo').innerHTML = `
+            <span class="w-2 h-2 rounded-full bg-rose-500"></span>
+            Falha no arquivo: ${err.message}
+          `;
+        }
+      };
+      reader.readAsArrayBuffer(file);
+    }
+
+    function analisarMatrizPlanilha(matrix, nomeArquivo) {
+      let headerRowIndex = -1;
+      let colunas = [];
+
+      const termosDesejados = [
+        'razaosocial', 'razao', 'cliente', 'empresa',
+        'codigoticket', 'ticket', 'chamado', 'protocolo', 'numero', 'id',
+        'titulo', 'assunto', 'resumo',
+        'descricaosituacao', 'descricao', 'situacao', 'solucao', 'correcao'
+      ];
+
+      const limiteInspecao = Math.min(matrix.length, 10);
+      let melhorScore = 0;
+
+      for (let i = 0; i < limiteInspecao; i++) {
+        const linha = matrix[i];
+        if (!Array.isArray(linha)) continue;
+
+        let score = 0;
+        linha.forEach(celula => {
+          const norm = normalizarTexto(celula);
+          if (norm && termosDesejados.some(t => norm.includes(t))) {
+            score++;
+          }
+        });
+
+        if (score > melhorScore) {
+          melhorScore = score;
+          headerRowIndex = i;
+        }
+      }
+
+      if (headerRowIndex === -1) {
+        for (let i = 0; i < limiteInspecao; i++) {
+          if (matrix[i].some(c => c && c.toString().trim() !== '')) {
+            headerRowIndex = i;
+            break;
+          }
+        }
+      }
+
+      if (headerRowIndex === -1) headerRowIndex = 0;
+
+      colunas = matrix[headerRowIndex].map((c, idx) => {
+        const str = (c || '').toString().trim();
+        return str !== '' ? str : `Coluna_${idx + 1}`;
+      });
+
+      rawSheetRows = [];
+      for (let r = headerRowIndex + 1; r < matrix.length; r++) {
+        const row = matrix[r];
+        if (!row || row.length === 0) continue;
+        const temDado = row.some(cell => cell !== null && cell !== undefined && cell.toString().trim() !== '');
+        if (!temDado) continue;
+
+        const obj = {};
+        colunas.forEach((colName, cIdx) => {
+          obj[colName] = row[cIdx] !== undefined ? row[cIdx] : '';
+        });
+        rawSheetRows.push(obj);
+      }
+
+      colunasDisponiveis = colunas;
+
+      document.getElementById('debugLinhaCabecalho').textContent = `Linha ${headerRowIndex + 1}`;
+      document.getElementById('debugColunas').textContent = colunas.join(' | ');
+      document.getElementById('badgeDepurador').textContent = `${rawSheetRows.length} linhas de dados`;
+
+      autoDetectarColunas();
+
+      // Exibe a seção de mapeamento caso não estivesse visível
+      const secaoMap = document.getElementById('secaoMapeamento');
+      secaoMap.classList.remove('hidden');
+
+      document.getElementById('statusArquivo').innerHTML = `
+        <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+        ${nomeArquivo} (${rawSheetRows.length} linhas analisadas)
+      `;
+      notify(`Planilha carregada: ${rawSheetRows.length} chamados identificados.`, 'success');
+    }
+
+    function autoDetectarColunas() {
+      mapaColunas = {
+        razaoSocial: null,
+        codigoTicket: null,
+        titulo: null,
+        descricaoSituacao: null
+      };
+
+      const padroes = {
+        razaoSocial: ['razaosocial', 'razao_social', 'razao', 'cliente', 'empresa', 'nomecliente'],
+        codigoTicket: ['codigoticket', 'codigo_ticket', 'ticket', 'chamado', 'numero', 'protocolo', 'idticket', 'id'],
+        titulo: ['titulo', 'título', 'assunto', 'resumo', 'subject', 'nome', 'descricao_resumida'],
+        descricaoSituacao: ['descricaosituacao', 'descricao_situacao', 'descrição situação', 'descricao', 'situacao', 'solucao', 'correcao', 'detalhes', 'resolucao']
+      };
+
+      for (const campo in padroes) {
+        const matches = padroes[campo];
+        for (const col of colunasDisponiveis) {
+          const norm = normalizarTexto(col);
+          if (matches.some(m => norm === normalizarTexto(m) || norm.includes(normalizarTexto(m)))) {
+            mapaColunas[campo] = col;
+            break;
+          }
+        }
+      }
+
+      popularSelectsMapeamento();
+      compilarEVisualizar();
+    }
+
+    function popularSelectsMapeamento() {
+      const selects = [
+        { id: 'mapRazao', campo: 'razaoSocial' },
+        { id: 'mapTicket', campo: 'codigoTicket' },
+        { id: 'mapTitulo', campo: 'titulo' },
+        { id: 'mapSituacao', campo: 'descricaoSituacao' }
+      ];
+
+      selects.forEach(({ id, campo }) => {
+        const sel = document.getElementById(id);
+        sel.innerHTML = '<option value="">-- Selecione uma coluna --</option>';
+        
+        colunasDisponiveis.forEach(col => {
+          const opt = document.createElement('option');
+          opt.value = col;
+          opt.textContent = col;
+          if (mapaColunas[campo] === col) {
+            opt.selected = true;
+          }
+          sel.appendChild(opt);
+        });
+      });
+    }
+
+    function aplicarMapeamentoManual() {
+      mapaColunas.razaoSocial = document.getElementById('mapRazao').value;
+      mapaColunas.codigoTicket = document.getElementById('mapTicket').value;
+      mapaColunas.titulo = document.getElementById('mapTitulo').value;
+      mapaColunas.descricaoSituacao = document.getElementById('mapSituacao').value;
+
+      compilarEVisualizar();
+    }
+
+    function compilarEVisualizar() {
+      document.getElementById('debugMapeamento').textContent = 
+        `RazaoSocial: [${mapaColunas.razaoSocial || 'N/A'}] | Ticket: [${mapaColunas.codigoTicket || 'N/A'}] | Título: [${mapaColunas.titulo || 'N/A'}] | Situação: [${mapaColunas.descricaoSituacao || 'N/A'}]`;
+
+      ticketsProcessados = [];
+      ticketsAgrupados = {};
+
+      rawSheetRows.forEach(row => {
+        const cliente = (row[mapaColunas.razaoSocial] || 'Razão Social Não Informada').toString().trim();
+        const ticket = (row[mapaColunas.codigoTicket] || 'S/N').toString().trim();
+        const titulo = (row[mapaColunas.titulo] || 'Demanda sem título').toString().trim();
+        const situacao = (row[mapaColunas.descricaoSituacao] || 'Ajuste concluído em nossos servidores.').toString().trim();
+
+        const item = {
+          razaoSocial: cliente,
+          codigoTicket: ticket,
+          titulo: titulo,
+          descricaoSituacao: situacao
+        };
+
+        ticketsProcessados.push(item);
+
+        if (!ticketsAgrupados[cliente]) {
+          ticketsAgrupados[cliente] = [];
+        }
+        ticketsAgrupados[cliente].push(item);
+      });
+
+      atualizarSelectClientes();
+      atualizarMascaraArquivo();
+      aplicarVisualizacaoPorModo();
+    }
+
+    // ==========================================
+    // RENDER DOS CARDS POR CLIENTE COM BOTÃO DIRETO
+    // ==========================================
+    function renderizarCards(dadosParaRenderizar) {
+      const container = document.getElementById('containerClientes');
+      const clientes = Object.keys(dadosParaRenderizar).sort();
+
+      document.getElementById('txtTotalExibido').textContent = `${clientes.length} cliente(s) exibido(s)`;
+
+      if (clientes.length === 0) {
+        container.innerHTML = `
+          <div class="text-center py-12 border border-slate-200 rounded-2xl bg-slate-50/60">
+            <p class="text-sm font-bold text-slate-700">Nenhum chamado correspondente aos critérios atuais.</p>
+            <p class="text-xs text-slate-400 mt-1">Verifique o filtro ou importe uma planilha com dados.</p>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = '';
+
+      clientes.forEach(cliente => {
+        const tickets = dadosParaRenderizar[cliente];
+        const card = document.createElement('div');
+        card.className = "page-break-avoid border border-slate-200 rounded-2xl overflow-hidden bg-white shadow-xs fade-in";
+
+        const linhasHtml = tickets.map(t => `
+          <tr class="border-b border-slate-100 hover:bg-slate-50/60 transition-colors">
+            <td class="py-3 px-4 text-xs font-mono-code font-bold align-top whitespace-nowrap">
+              <span class="inline-flex items-center px-2.5 py-1 rounded-md bg-blue-50 text-[#0066CC] border border-blue-200/80 font-bold">
+                #${t.codigoTicket}
+              </span>
+            </td>
+            <td class="py-3 px-4 text-xs font-bold text-slate-900 align-top max-w-[240px] leading-snug">
+              ${t.titulo}
+            </td>
+            <td class="py-3 px-4 text-xs text-slate-600 leading-relaxed align-top">
+              ${t.descricaoSituacao}
+            </td>
+          </tr>
+        `).join('');
+
+        const botaoIsolarClienteHtml = modoAtual === 'geral' ? `
+          <button 
+            type="button"
+            onclick="selecionarClienteDireto('${cliente.replace(/'/g, "\\'")}')"
+            class="no-print inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold text-[#0066CC] bg-white border border-blue-200 hover:bg-blue-50 hover:border-[#0066CC] transition-colors cursor-pointer"
+            title="Gerar comunicado PDF exclusivo para este cliente"
+          >
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+            </svg>
+            Gerar Relatório Deste Cliente
+          </button>
+        ` : '';
+
+        card.innerHTML = `
+          <div class="bg-gradient-to-r from-slate-50 to-blue-50/30 px-5 py-3.5 border-b border-slate-200 flex flex-wrap items-center justify-between gap-3">
+            <div class="flex items-center gap-2.5">
+              <span class="w-2.5 h-2.5 rounded-full bg-[#0066CC]"></span>
+              <h4 class="font-extrabold text-sm text-[#0A2540] tracking-tight">${cliente}</h4>
+            </div>
+            
+            <div class="flex items-center gap-2.5">
+              <span class="text-xs font-bold text-slate-600 bg-white px-2.5 py-1 rounded-lg border border-slate-200 shadow-2xs">
+                ${tickets.length} chamado(s)
+              </span>
+              ${botaoIsolarClienteHtml}
+            </div>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+              <thead>
+                <tr class="bg-white border-b border-slate-100 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                  <th class="py-2.5 px-4 w-32">Ticket</th>
+                  <th class="py-2.5 px-4 w-60">Título / Assunto</th>
+                  <th class="py-2.5 px-4">Descrição da Situação / Resolução</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-100">
+                ${linhasHtml}
+              </tbody>
+            </table>
+          </div>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    function filtrarCards() {
+      const termo = normalizarTexto(document.getElementById('inputFiltro').value);
+
+      if (modoAtual === 'anonimo') {
+        if (!termo) {
+          renderizarTabelaAnonima(ticketsProcessados);
+          return;
+        }
+        const ticketsFiltrados = ticketsProcessados.filter(t => 
+          normalizarTexto(t.codigoTicket).includes(termo) ||
+          normalizarTexto(t.titulo).includes(termo) ||
+          normalizarTexto(t.descricaoSituacao).includes(termo)
+        );
+        renderizarTabelaAnonima(ticketsFiltrados);
+        return;
+      }
+
+      if (modoAtual !== 'geral') return;
+
+      if (!termo) {
+        renderizarCards(ticketsAgrupados);
+        return;
+      }
+
+      const filtrados = {};
+      Object.keys(ticketsAgrupados).forEach(cliente => {
+        const clienteBate = normalizarTexto(cliente).includes(termo);
+        const ticketsBatem = ticketsAgrupados[cliente].filter(t => 
+          normalizarTexto(t.codigoTicket).includes(termo) ||
+          normalizarTexto(t.titulo).includes(termo) ||
+          normalizarTexto(t.descricaoSituacao).includes(termo)
+        );
+
+        if (clienteBate) {
+          filtrados[cliente] = ticketsAgrupados[cliente];
+        } else if (ticketsBatem.length > 0) {
+          filtrados[cliente] = ticketsBatem;
+        }
+      });
+
+      renderizarCards(filtrados);
+    }
+
+    // ==========================================
+    // EXPORTAÇÕES PDF (DOWNLOAD DIRETO & IMPRESSÃO)
+    // ==========================================
+    async function executarDownloadPdf() {
+      if (ticketsProcessados.length === 0) {
+        notify("Nenhum chamado disponível para exportação. Importe uma planilha ou use a demonstração.", "error");
+        return;
+      }
+
+      const inputMascara = document.getElementById('inputMascara');
+      sanitizarMascara(inputMascara);
+      const nomeBase = inputMascara.value.trim() || 'Relatorio_Sprint_Union';
+      const nomePdf = `${nomeBase}.pdf`;
+
+      const btn = document.getElementById('btnPdfDownload');
+      const txt = document.getElementById('btnPdfTxt');
+      const elemento = document.getElementById('previewContainer');
+
+      btn.disabled = true;
+      txt.textContent = "Compilando PDF...";
+      
+      let tipoMsg = "Relatório Geral";
+      if (modoAtual === 'individual') tipoMsg = `Comunicado para ${clienteAtivo}`;
+      else if (modoAtual === 'anonimo') tipoMsg = "Changelog Geral Sem Nomes";
+
+      notify(`Gerando PDF (${tipoMsg})...`, "info");
+
+      // Correção: Força a rolagem para o topo antes de renderizar para evitar tela/PDF em branco
+      window.scrollTo(0, 0);
+
+      if (typeof html2pdf === 'undefined') {
+        notify("Biblioteca html2pdf indisponível. Abrindo impressão nativa...", "info");
+        btn.disabled = false;
+        txt.textContent = "Baixar PDF Oficial";
+        executarImpressaoNativa();
+        return;
+      }
+
+      const opt = {
+        margin: [10, 10, 10, 10], // Margens balanceadas
+        filename: nomePdf,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { 
+          scale: 2, 
+          useCORS: true, 
+          allowTaint: true,
+          logging: false,
+          scrollY: 0,
+          windowY: 0 // Essencial para evitar falha de captura com scroll ativado
+        },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+        pagebreak: { mode: 'css', avoid: '.page-break-avoid' } // Regra ajustada contra quebras abruptas
+      };
+
+      try {
+        await html2pdf().set(opt).from(elemento).save();
+        notify(`PDF baixado com sucesso: ${nomePdf}`, "success");
+      } catch (err) {
+        console.error("Erro na geração do PDF:", err);
+        notify("Falha ao compilar PDF direto. Abrindo janela de impressão nativa...", "error");
+        executarImpressaoNativa();
+      } finally {
+        btn.disabled = false;
+        txt.textContent = "Baixar PDF Oficial";
+      }
+    }
+
+    function executarImpressaoNativa() {
+      if (ticketsProcessados.length === 0) {
+        notify("Nenhum chamado disponível para impressão!", "error");
+        return;
+      }
+
+      const inputMascara = document.getElementById('inputMascara');
+      sanitizarMascara(inputMascara);
+      const nomeFinal = inputMascara.value.trim() || 'Relatorio_Sprint_Union';
+
+      const tituloOriginal = document.title;
+      document.title = nomeFinal;
+
+      window.print();
+
+      setTimeout(() => {
+        document.title = tituloOriginal;
+      }, 1500);
+    }
+
+    // ==========================================
+    // CARGA DE DADOS DE TESTE / DEMONSTRAÇÃO
+    // ==========================================
+    function carregarDadosDemonstracao() {
+      const matrizDemo = [
+        ["Relatório de Chamados da Sprint", "", "", ""],
+        ["Gerado em: 29/09/2026", "", "", ""],
+        ["RazaoSocial", "CodigoTicket", "Titulo", "DescricaoSituacao"],
+        ["Hospital São Lucas Medicina Diagnóstica", "TK-8910", "Ajuste de lote no faturamento TISS", "Otimização na rotina de faturamento, garantindo a transmissão fluida das guias agrupadas sem interrupções."],
+        ["Hospital São Lucas Medicina Diagnóstica", "TK-8915", "Otimização na consulta de prontuário", "Melhoria no carregamento da tela de prontuário, oferecendo uma busca muito mais rápida e eficiente para o corpo clínico."],
+        ["Supermercados Alvorada Distribuição", "TK-8930", "Adequação fiscal de PIS/COFINS", "Aprimoramento no cálculo de partilha estadual para garantir a precisão exigida na emissão da NF-e."],
+        ["Auto Peças Brasil Logística", "TK-8944", "Atualização do Manifesto Eletrônico (MDF-e)", "Atualização nos protocolos de comunicação com a SEFAZ, garantindo a emissão contínua e segura dos documentos de transporte."],
+        ["Auto Peças Brasil Logística", "TK-8949", "Adicionar atalho de consulta rápida no PDV", "Nova funcionalidade: busca rápida por código de fábrica através da tecla F9, agilizando drasticamente o atendimento de balcão."],
+        ["Viação & Transportes Planalto", "TK-8960", "Otimização de relatório consolidado de frota", "Melhoria de performance na visualização do relatório, facilitando a gestão da frota e a tomada de decisão da equipe."]
+      ];
+
+      analisarMatrizPlanilha(matrizDemo, "planilha_demonstracao_union.xlsx");
+    }
+
+    // ==========================================
+    // FUNÇÕES UTILITÁRIAS E DE APOIO
+    // ==========================================
+    function sanitizarMascara(el) {
+      if (!el) return;
+      el.value = el.value.replace(/[^a-zA-Z0-9_\-\.]/g, '_').replace(/_+/g, '_');
+    }
+
+    function sanitizarParaNomeArquivo(texto) {
+      if (!texto) return '';
+      return normalizarTexto(texto)
+        .replace(/[^a-zA-Z0-9_\-]/g, '_')
+        .replace(/_+/g, '_')
+        .replace(/^_+|_+$/g, '');
+    }
+
+    function normalizarTexto(str) {
+      if (str === null || str === undefined) return '';
+      return str.toString()
+        .toLowerCase()
+        .trim()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '');
+    }
+
+    function aoAlterarVersaoOuData() {
+      const versao = document.getElementById('inputVersao').value || 'Sprint Atual';
+      const data = document.getElementById('inputData').value || 'Hoje';
+
+      document.getElementById('docVersaoTxt').textContent = versao;
+      document.getElementById('docDataTxt').textContent = data;
+
+      atualizarMascaraArquivo();
+    }
+
+    function notify(mensagem, tipo = 'info') {
+      const toast = document.getElementById('toast');
+      const toastMsg = document.getElementById('toastMsg');
+      const toastIcon = document.getElementById('toastIcon');
+
+      toastMsg.textContent = mensagem;
+
+      if (tipo === 'success') {
+        toastIcon.textContent = '✅';
+      } else if (tipo === 'error') {
+        toastIcon.textContent = '⚠️';
+      } else {
+        toastIcon.textContent = 'ℹ';
+      }
+
+      toast.classList.remove('translate-y-[-140%]', 'opacity-0', 'pointer-events-none');
+      toast.classList.add('translate-y-0', 'opacity-100');
+
+      setTimeout(() => {
+        toast.classList.remove('translate-y-0', 'opacity-100');
+        toast.classList.add('translate-y-[-140%]', 'opacity-0', 'pointer-events-none');
+      }, 3500);
+    }
+
+    // ==========================================
+    // RENDERIZAÇÃO DO SVG VETORIAL PARA O HTML2CANVAS (PDF)
+    // ==========================================
+    function converterSvgParaBase64(svgString, callback) {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      const DOMURL = window.URL || window.webkitURL || window;
+
+      canvas.width = 400 * 2; // Alta resolução (retina)
+      canvas.height = 220 * 2;
+      
+      const img = new Image();
+      const svg = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
+      const url = DOMURL.createObjectURL(svg);
+
+      img.onload = function () {
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        DOMURL.revokeObjectURL(url);
+        callback(canvas.toDataURL('image/png'));
+      };
+      img.src = url;
+    }
+
+    function inicializarLogoRobusta() {
+      // SVG com recorte proporcional (evita a sensação de distorção vertical)
+      const svgCode = `<svg width="400" height="220" viewBox="130 5 140 155" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="grad1" x1="0%" y1="100%" x2="100%" y2="0%">
+            <stop offset="0%" stop-color="#009BFF"/>
+            <stop offset="100%" stop-color="#3ED6C8"/>
+          </linearGradient>
+        </defs>
+        <path d="M140 30 C140 20 148 12 158 12 C168 12 176 20 176 30 L176 95 C176 105 184 113 194 113 L206 113 C216 113 224 105 224 95 L224 30 C224 20 232 12 242 12 C252 12 260 20 260 30 L260 95 C260 108 250 118 237 118 L237 130 C237 143 227 153 214 153 L186 153 C173 153 163 143 163 130 L163 118 C150 118 140 108 140 95 Z" fill="url(#grad1)"/>
+      </svg>`;
+
+      converterSvgParaBase64(svgCode, (base64Img) => {
+        document.querySelectorAll('.logo-union-img').forEach(img => {
+          img.src = base64Img;
+        });
+      });
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      inicializarLogoRobusta();
+      aoAlterarVersaoOuData();
+    });
+  </script>
+</body>
+</html>
